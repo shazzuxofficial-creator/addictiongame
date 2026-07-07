@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShazzuX</title>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: #030303; 
+            overflow: hidden; 
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        #splash-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #030303;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease-out; 
+        }
+
+        .studio-logo {
+            font-size: 4rem;
+            color: #ffffff;
+            letter-spacing: 15px;
+            font-weight: 300;
+            opacity: 0;
+            animation: cinematic-reveal 4s ease-in-out forwards; 
+        }
+
+        .red-x {
+            color: #d30000;
+            font-weight: 900;
+            text-shadow: 0px 0px 20px rgba(211, 0, 0, 0.6);
+            letter-spacing: 0px; 
+            margin-left: -5px; 
+        }
+
+        @keyframes cinematic-reveal {
+            0% { opacity: 0; transform: scale(0.95); }
+            20% { opacity: 1; transform: scale(1.0); }
+            80% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0; transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <h1 class="studio-logo">SHAZZU<span class="red-x">X</span></h1>
+    </div>
+
+    <script>
+        // Wait for the 4-second CSS animation, fade out, then redirect
+        setTimeout(() => {
+            const splash = document.getElementById("splash-screen");
+            splash.style.opacity = "0";
+            
+            setTimeout(() => {
+                // Redirects the browser to your new menu file
+                window.location.href = "menu.html"; 
+            }, 1000);
+        }, 4000); 
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Addiction - Core</title>
+
+    <style>
+        /* =========================================
+           CORE RESET & LANDSCAPE SETUP
+           ========================================= */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --blood-red: #8a0303;
+            --bright-red: #ff1a1a;
+            --dark-bg: #030303;
+            --terminal-gray: #a3a3a3;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--terminal-gray);
+            font-family: 'Courier New', Courier, monospace; /* Terminal aesthetic */
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+
+        /* =========================================
+           ATMOSPHERE: CRT, SCANLINES & VIDEO
+           ========================================= */
+        #bg-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0; 
+            transition: opacity 3s ease;
+            pointer-events: none;
+            filter: grayscale(100%) contrast(120%) brightness(40%);
+        }
+
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            z-index: 2;
+            pointer-events: none;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9); /* Heavy vignette */
+        }
+
+        /* Occasional global screen twitch */
+        .twitch {
+            animation: screen-twitch 10s infinite;
+        }
+
+        @keyframes screen-twitch {
+            0%, 96%, 98%, 100% { transform: translate(0, 0) skew(0deg); }
+            97% { transform: translate(-2px, 1px) skew(1deg); }
+            99% { transform: translate(2px, -1px) skew(-1deg); }
+        }
+
+        /* =========================================
+           SCREENS: GATE & LOADING
+           ========================================= */
+        #gate-screen, #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1.5s ease;
+        }
+
+        .gate-text {
+            color: var(--bright-red);
+            font-size: 4vh;
+            letter-spacing: 0.5vw;
+            animation: pulse-red 2s infinite alternate;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        @keyframes pulse-red {
+            0% { opacity: 0.2; text-shadow: none; }
+            100% { opacity: 1; text-shadow: 0 0 15px var(--bright-red); }
+        }
+
+        .load-text {
+            font-size: 3vh;
+            letter-spacing: 0.3vw;
+            margin-bottom: 2vh;
+            color: #555;
+        }
+
+        .progress-container {
+            width: 40vw;
+            height: 2px;
+            background: #111;
+            position: relative;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--blood-red);
+            box-shadow: 0 0 10px var(--blood-red);
+            transition: width 0.1s linear;
+        }
+
+        #progress-percent {
+            font-size: 2.5vh;
+            margin-top: 2vh;
+            color: var(--blood-red);
+        }
+
+        /* =========================================
+           MAIN MENU (LANDSCAPE SPLIT LAYOUT)
+           ========================================= */
+        #core-menu {
+            display: none;
+            opacity: 0;
+            width: 100vw;
+            height: 100vh;
+            transition: opacity 2.5s ease;
+            z-index: 10;
+            display: flex; /* Flex row for landscape */
+        }
+
+        /* Left Side: Branding */
+        .branding-section {
+            width: 60%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding-left: 8vw;
+        }
+
+        .game-title {
+            font-family: 'Arial', sans-serif;
+            font-size: 10vh;
+            font-weight: 900;
+            letter-spacing: 1.5vw;
+            color: #fff;
+            text-transform: uppercase;
+            position: relative;
+            /* Chromatic Aberration Glitch */
+            text-shadow: 2px 0 0 rgba(255,0,0,0.7), -2px 0 0 rgba(0,255,255,0.7);
+            animation: title-glitch 4s infinite;
+        }
+
+        @keyframes title-glitch {
+            0%, 92%, 100% { text-shadow: 2px 0 0 rgba(255,0,0,0.7), -2px 0 0 rgba(0,255,255,0.7); transform: skew(0deg); }
+            94% { text-shadow: -5px 0 0 rgba(255,0,0,1), 5px 0 0 rgba(0,255,255,1); transform: skew(-3deg); }
+            96% { text-shadow: 5px 0 0 rgba(255,0,0,1), -5px 0 0 rgba(0,255,255,1); transform: skew(3deg); }
+        }
+
+        .demo-badge {
+            color: var(--bright-red);
+            font-size: 2.5vh;
+            font-weight: bold;
+            letter-spacing: 0.4vw;
+            margin-top: 1vh;
+            border-left: 3px solid var(--blood-red);
+            padding-left: 10px;
+            background: rgba(138, 3, 3, 0.1);
+            width: fit-content;
+        }
+
+        /* Right Side: Navigation */
+        .nav-section {
+            width: 40%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding-left: 4vw;
+            background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.95) 100%);
+        }
+
+        .menu-item {
+            background: transparent;
+            border: none;
+            color: #666;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 4vh;
+            letter-spacing: 0.3vw;
+            text-align: left;
+            padding: 2.5vh 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            position: relative;
+            width: 100%;
+        }
+
+        .menu-item::before {
+            content: '>';
+            position: absolute;
+            left: -2vw;
+            opacity: 0;
+            color: var(--bright-red);
+            transition: all 0.3s ease;
+        }
+
+        .menu-item:hover, .menu-item:active {
+            color: #fff;
+            padding-left: 1vw;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        .menu-item:hover::before, .menu-item:active::before {
+            opacity: 1;
+            left: -1vw;
+        }
+
+        /* =========================================
+           OVERLAYS (SCROLLABLE FOR MOBILE LANDSCAPE)
+           ========================================= */
+        .overlay-screen {
+            display: none;
+            opacity: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(5, 5, 5, 0.98);
+            z-index: 30;
+            flex-direction: column;
+            align-items: center;
+            transition: opacity 0.4s ease;
+            overflow-y: auto; /* CRITICAL FOR LANDSCAPE */
+            padding: 5vh 5vw;
+        }
+
+        .overlay-title {
+            font-family: 'Arial', sans-serif;
+            font-weight: 900;
+            font-size: 6vh;
+            letter-spacing: 0.5vw;
+            margin-bottom: 4vh;
+            color: var(--bright-red);
+            text-transform: uppercase;
+            text-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+            flex-shrink: 0;
+        }
+
+        /* Warning Screen Specifics */
+        .warning-content {
+            max-width: 80vw;
+            text-align: center;
+        }
+
+        .demo-text-body {
+            color: #888;
+            font-size: 3.5vh;
+            line-height: 1.5;
+            margin-bottom: 3vh;
+        }
+
+        .demo-text-highlight {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .warning-box {
+            border-left: 4px solid var(--bright-red);
+            background: rgba(255,0,0,0.05);
+            padding: 3vh;
+            text-align: left;
+            margin-bottom: 4vh;
+            font-size: 3vh;
+            color: #bbb;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 2vw;
+            justify-content: center;
+            margin-bottom: 5vh;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #aaa;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 3vh;
+            font-weight: bold;
+            letter-spacing: 0.2vw;
+            padding: 2.5vh 3vw;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+        }
+
+        .action-btn:hover, .action-btn:active {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border-color: #fff;
+        }
+
+        .continue-btn {
+            border-color: var(--blood-red);
+            color: var(--bright-red);
+        }
+
+        .continue-btn:hover, .continue-btn:active {
+            background: var(--blood-red);
+            color: #fff;
+            border-color: var(--bright-red);
+            box-shadow: 0 0 15px rgba(255,0,0,0.5);
+        }
+
+        /* Settings & Credits Specifics */
+        .setting-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 60vw;
+            max-width: 600px;
+            margin-bottom: 4vh;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 2vh;
+        }
+
+        .setting-label {
+            font-size: 3.5vh;
+            letter-spacing: 0.2vw;
+            color: #aaa;
+        }
+
+        input[type="checkbox"] {
+            width: 4vh;
+            height: 4vh;
+            accent-color: var(--bright-red);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 25vw;
+            background: transparent;
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #444;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 4vh;
+            width: 2vw;
+            background: var(--terminal-gray);
+            margin-top: calc(-2vh + 2px);
+            border-radius: 2px;
+        }
+
+        .credit-block {
+            margin-bottom: 4vh;
+            text-align: center;
+        }
+        
+        .credit-role {
+            color: var(--blood-red);
+            font-size: 2.5vh;
+            letter-spacing: 0.3vw;
+            margin-bottom: 1vh;
+            text-transform: uppercase;
+        }
+
+        .credit-name {
+            color: #fff;
+            font-size: 4vh;
+            letter-spacing: 0.4vw;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body class="twitch">
+
+    <video id="bg-video" loop muted playsinline></video>
+    <div class="crt-overlay"></div>
+
+    <div id="loading-screen" style="display: none;">
+        <div class="load-text">ESTABLISHING CONNECTION...</div>
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div id="progress-percent">0%</div>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="bg-music" loop>
+        <source src="audio/bgm.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="click-sfx">
+        <source src="audio/click.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- Initial Boot Gate -->
+    <div id="gate-screen">
+        <div class="gate-text">TAP TO BOOT SYSTEM</div>
+    </div>
+
+    <!-- Main Menu (Landscape Split) -->
+    <div id="core-menu">
+        <div class="branding-section">
+            <h1 class="game-title">ADDICTION</h1>
+            <div class="demo-badge">NODE: v0.1 // DEMO</div>
+        </div>
+
+        <div class="nav-section">
+            <button class="menu-item" id="new-game-btn">Enter Network</button>
+            <button class="menu-item" id="settings-btn">Config</button>
+            <button class="menu-item" id="credits-btn">Data Logs</button>
+        </div>
+    </div>
+
+    <!-- Horror Warning Overlay -->
+    <div id="demo-warning-screen" class="overlay-screen">
+        <h2 class="overlay-title">SYSTEM WARNING</h2>
+        
+        <div class="warning-content">
+            <p class="demo-text-body">
+                This network contains intense <span class="demo-text-highlight">psychological horror</span>. 
+            </p>
+            
+            <p class="demo-text-body">
+                The simulations ahead include heavy, depressive, and severely triggering content. It is designed only for those who actively seek out dark fantasies and mental pressure.
+            </p>
+
+            <div class="warning-box">
+                <strong style="color: var(--bright-red);">DEVELOPER DIRECTIVE:</strong><br><br>
+                If you are currently struggling with your mental health, or if extreme psychological themes do not appeal to you, sever this connection immediately. Do not force yourself deeper into this network.
+            </div>
+
+            <p class="demo-text-body demo-text-highlight" style="font-size: 3vh; margin-bottom: 4vh;">
+                DO YOU POSSESS THE MENTAL FORTITUDE TO PROCEED?
+            </p>
+
+            <div class="btn-container">
+                <button class="action-btn" id="cancel-demo-btn">Abort</button>
+                <button class="action-btn continue-btn" id="continue-demo-btn">I Am Ready</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div id="settings-screen" class="overlay-screen">
+        <h2 class="overlay-title" style="color: #fff; text-shadow: none;">SYSTEM CONFIG</h2>
+        
+        <div class="setting-group">
+            <span class="setting-label">Audio Feed</span>
+            <input type="checkbox" id="bgm-toggle" checked>
+        </div>
+        
+        <div class="setting-group" id="volume-group">
+            <span class="setting-label">Master Gain</span>
+            <input type="range" id="bgm-volume" min="0" max="1" step="0.05" value="0.4">
+        </div>
+        
+        <button class="action-btn" id="close-settings-btn" style="margin-top: 3vh;">Save & Return</button>
+    </div>
+
+    <!-- Credits Overlay -->
+    <div id="credits-screen" class="overlay-screen">
+        <h2 class="overlay-title" style="color: #fff; text-shadow: none;">PERSONNEL DATA</h2>
+        
+        <div class="credit-block">
+            <p class="credit-role">System Architect</p>
+            <h3 class="credit-name">Shahzad Ali</h3>
+        </div>
+        <div class="credit-block">
+            <p class="credit-role">Network Distributor</p>
+            <h3 class="credit-name">Shazzux</h3>
+        </div>
+        
+        <button class="action-btn" id="close-credits-btn" style="margin-top: 4vh;">Return</button>
+    </div>
+
+    <script>
+        // DOM Elements
+        const gateScreen = document.getElementById('gate-screen');
+        const coreMenu = document.getElementById('core-menu');
+        const bgMusic = document.getElementById('bg-music');
+        const clickSfx = document.getElementById('click-sfx');
+
+        const creditsScreen = document.getElementById('credits-screen');
+        const settingsScreen = document.getElementById('settings-screen');
+        const demoWarningScreen = document.getElementById('demo-warning-screen');
+
+        const bgmToggle = document.getElementById('bgm-toggle');
+        const bgmVolume = document.getElementById('bgm-volume');
+        const volumeGroup = document.getElementById('volume-group');
+
+        // Audio Logic
+        function playClickSound() {
+            clickSfx.currentTime = 0;
+            clickSfx.volume = 0.8;
+            clickSfx.play().catch(() => {});
+        }
+
+        // Overlay Logic
+        function openOverlay(overlayElement) {
+            playClickSound();
+            overlayElement.style.display = "flex";
+            // Ensure scroll is at top when opened
+            overlayElement.scrollTop = 0; 
+            setTimeout(() => { overlayElement.style.opacity = "1"; }, 50);
+        }
+
+        function closeOverlay(overlayElement) {
+            playClickSound();
+            overlayElement.style.opacity = "0";
+            setTimeout(() => { overlayElement.style.display = "none"; }, 400);
+        }
+
+        // Boot Sequence & Preloading
+        gateScreen.addEventListener('click', () => {
+            playClickSound();
+            gateScreen.style.opacity = "0";
+
+            setTimeout(() => {
+                gateScreen.style.display = "none";
+                document.getElementById('loading-screen').style.display = "flex";
+                preloadBackgroundVideo();
+            }, 1000);
+        });
+
+        function preloadBackgroundVideo() {
+            const videoUrl = 'images_and_videos/menu_background.mp4';
+            const req = new XMLHttpRequest();
+            req.open('GET', videoUrl, true);
+            req.responseType = 'blob';
+
+            req.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    document.getElementById('progress-bar').style.width = percentComplete + '%';
+                    document.getElementById('progress-percent').innerText = percentComplete + '%';
+                }
+            };
+
+            req.onload = function() {
+                if (this.status === 200 || this.status === 0) {
+                    const videoBlob = this.response;
+                    const vidUrl = URL.createObjectURL(videoBlob);
+                    const bgVideo = document.getElementById('bg-video');
+                    
+                    bgVideo.src = vidUrl;
+                    bgVideo.play().catch(() => {});
+                    // Fades in the video behind the CRT scanlines
+                    bgVideo.style.opacity = "0.7"; 
+                    
+                    finishBootSequence();
+                }
+            };
+
+            req.onerror = function() {
+                console.error("Network interface failed. Initializing offline mode.");
+                finishBootSequence(); 
+            };
+
+            req.send();
+        }
+
+        function finishBootSequence() {
+            document.getElementById('loading-screen').style.display = 'none';
+            // Enable Flex row for split screen menu
+            coreMenu.style.display = "flex"; 
+
+            if (bgmToggle.checked) {
+                bgMusic.volume = bgmVolume.value;
+                bgMusic.play().catch(() => {});
+            }
+
+            setTimeout(() => { coreMenu.style.opacity = "1"; }, 100);
+        }
+
+        // Navigation & Menu Event Listeners
+        document.getElementById('settings-btn').addEventListener('click', () => openOverlay(settingsScreen));
+                document.getElementById('close-settings-btn').addEventListener('click', () => closeOverlay(settingsScreen));
+
+        document.getElementById('credits-btn').addEventListener('click', () => openOverlay(creditsScreen));
+        document.getElementById('close-credits-btn').addEventListener('click', () => closeOverlay(creditsScreen));
+
+        // Settings Toggles
+        bgmToggle.addEventListener('change', (e) => {
+            playClickSound();
+            if (e.target.checked) {
+                bgMusic.play().catch(() => {});
+                volumeGroup.style.opacity = "1";
+                bgmVolume.disabled = false;
+            } else {
+                bgMusic.pause();
+                volumeGroup.style.opacity = "0.3";
+                bgmVolume.disabled = true;
+            }
+        });
+
+        bgmVolume.addEventListener('input', (e) => { bgMusic.volume = e.target.value; });
+
+        // Warning Logic & Game Start
+        document.getElementById('new-game-btn').addEventListener('click', () => {
+            openOverlay(demoWarningScreen);
+        });
+
+        document.getElementById('cancel-demo-btn').addEventListener('click', () => {
+            closeOverlay(demoWarningScreen);
+        });
+
+        document.getElementById('continue-demo-btn').addEventListener('click', () => {
+            playClickSound();
+
+            demoWarningScreen.style.opacity = "0";
+            coreMenu.style.opacity = "0";
+
+            let fadeAudio = setInterval(() => {
+                if (bgMusic.volume > 0.05) bgMusic.volume -= 0.05;
+                else { bgMusic.pause(); clearInterval(fadeAudio); }
+            }, 250);
+
+            // Redirects to intro
+            setTimeout(() => { window.location.href = "G_playerintro.html"; }, 3000);
+        });
+    </script>
+</body>
+
+</html>

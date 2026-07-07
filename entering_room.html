@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Room</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- LOADING SCREEN --- */
+        #loading-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #020202;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 1.5s ease;
+        }
+
+        .loading-text {
+            font-size: 0.9rem;
+            letter-spacing: 5px;
+            color: #777;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            animation: pulse-text 2s infinite;
+        }
+
+        .progress-container {
+            width: 200px;
+            height: 2px;
+            background-color: #222;
+            position: relative;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #8a0303; 
+            transition: width 0.2s ease;
+        }
+
+        /* --- VIDEO CONTAINER --- */
+        #video-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            background-color: #000;
+        }
+
+        video {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover; 
+            opacity: 0;
+            /* Added transition for the VHS filter to make it snap slightly but smoothly */
+            transition: opacity 2s ease-in-out, filter 0.3s ease, transform 0.3s ease; 
+            pointer-events: none;
+            transform: scale(1);
+        }
+
+        video.active {
+            opacity: 1;
+        }
+
+        /* --- VHS PAUSE FILTER --- */
+        .vhs-paused {
+            /* Creates that slightly degraded, analog tape freeze-frame look */
+            filter: contrast(120%) saturate(80%) sepia(30%) hue-rotate(-5deg) blur(1px);
+            transform: scale(1.02); /* Very subtle zoom to emphasize the stop */
+        }
+
+        /* --- CINEMATIC OVERLAYS --- */
+        .letterbox {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 12vh;
+            background-color: #000;
+            z-index: 15; 
+            pointer-events: none;
+        }
+
+        .letterbox.top { top: 0; }
+        .letterbox.bottom { bottom: 0; }
+
+        #cinematic-time {
+            position: absolute;
+            bottom: 14vh; 
+            left: 5vw; 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 1.1rem;
+            color: #d4d4d4;
+            letter-spacing: 2px;
+            z-index: 16;
+            opacity: 0; 
+            pointer-events: none;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.8);
+        }
+
+        .fade-in-out {
+            animation: textFadeInOut 6s ease-in-out forwards;
+        }
+
+        @keyframes textFadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 0.8; }
+            80% { opacity: 0.8; }
+            100% { opacity: 0; }
+        }
+
+        /* --- INTERACTION UI --- */
+        #ui-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 20;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none; 
+        }
+
+        .interact-btn {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #555;
+            color: #ccc;
+            padding: 15px 30px;
+            font-size: 1rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            cursor: pointer;
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 1s ease;
+            pointer-events: auto;
+            display: none; 
+        }
+
+        .interact-btn.visible {
+            display: block;
+            animation: fade-in-up 1s forwards;
+            animation-delay: 0.1s;
+        }
+
+        .interact-btn:hover {
+            border-color: #8a0303;
+            color: #fff;
+            background: rgba(20, 0, 0, 0.8);
+            box-shadow: 0 0 15px rgba(138, 3, 3, 0.4);
+        }
+
+        @keyframes pulse-text {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div class="loading-text">Loading</div>
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+    </div>
+
+    <div id="video-container">
+        <video id="vid1" playsinline></video>
+        <video id="vid2" playsinline></video>
+        <video id="vid3" playsinline></video>
+    </div>
+
+    <div class="letterbox top"></div>
+    <div class="letterbox bottom"></div>
+    <div id="cinematic-time">Monday 11:47 AM</div>
+
+    <div id="ui-container">
+        <button id="btn1" class="interact-btn">[ Enter Room ]</button>
+        <button id="btn2" class="interact-btn">[ Take A Seat ]</button>
+        <button id="btn3" class="interact-btn">[ Start Exploring ]</button>
+    </div>
+
+    <script>
+        // --- AUDIO SETUP ---
+        const ambientMusic = new Audio('audio/dark_horror_ambient.mp3');
+        ambientMusic.loop = true;
+        ambientMusic.volume = 0.5;
+
+        const pauseSfx = new Audio('audio/interaction_pause.mp3');
+        pauseSfx.volume = 0.8; // Set slightly louder to make it punchy
+
+        // --- VIDEO SETUP ---
+        const videoSources = [
+            'images_and_videos/entering_room_clips/1.mp4',
+            'images_and_videos/entering_room_clips/2.mp4',
+            'images_and_videos/entering_room_clips/3.mp4'
+        ];
+
+        const loadingScreen = document.getElementById('loading-screen');
+        const progressBar = document.getElementById('progress-bar');
+        const timeText = document.getElementById('cinematic-time');
+        
+        const vid1 = document.getElementById('vid1');
+        const vid2 = document.getElementById('vid2');
+        const vid3 = document.getElementById('vid3');
+        
+        const btn1 = document.getElementById('btn1');
+        const btn2 = document.getElementById('btn2');
+        const btn3 = document.getElementById('btn3');
+
+        let loadedVideos = 0;
+        let progressArray = [0, 0, 0];
+
+        function preloadVideo(url, index, videoElement) {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', url, true);
+            xhr.responseType = 'blob'; 
+
+            xhr.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percentComplete = (event.loaded / event.total) * 100;
+                    progressArray[index] = percentComplete;
+                    updateTotalProgress();
+                }
+            };
+
+            xhr.onload = function() {
+                if (this.status === 200) {
+                    const videoBlob = this.response;
+                    const videoUrl = URL.createObjectURL(videoBlob);
+                    videoElement.src = videoUrl;
+                    videoElement.load();
+                    
+                    loadedVideos++;
+                    if (loadedVideos === 3) {
+                        finishLoading();
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        function updateTotalProgress() {
+            const totalProgress = (progressArray[0] + progressArray[1] + progressArray[2]) / 3;
+            progressBar.style.width = totalProgress + '%';
+        }
+
+        preloadVideo(videoSources[0], 0, vid1);
+        preloadVideo(videoSources[1], 1, vid2);
+        preloadVideo(videoSources[2], 2, vid3);
+
+        function finishLoading() {
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    startSequence();
+                }, 1500);
+            }, 500);
+        }
+
+        function triggerPauseEffect(videoElement) {
+            videoElement.classList.add('vhs-paused');
+            pauseSfx.currentTime = 0; // Reset SFX to start
+            pauseSfx.play();
+        }
+
+        function removePauseEffect(videoElement) {
+            videoElement.classList.remove('vhs-paused');
+        }
+
+        function startSequence() {
+            // Attempt to autoplay ambient music. If blocked by browser policies, 
+            // it will play upon the first button click instead.
+            ambientMusic.play().catch(e => console.log("Waiting for user interaction to play audio."));
+            
+            vid1.classList.add('active');
+            vid1.play();
+            timeText.classList.add('fade-in-out');
+        }
+
+        // --- INTERACTION FLOW ---
+
+        vid1.onended = () => {
+            triggerPauseEffect(vid1);
+            btn1.classList.add('visible');
+        };
+
+        btn1.onclick = () => {
+            ambientMusic.play(); // Ensure music is playing if autoplay was blocked
+            btn1.classList.remove('visible');
+            btn1.style.display = 'none'; 
+            
+            removePauseEffect(vid1);
+            vid1.classList.remove('active');
+            vid2.classList.add('active');
+            vid2.play();
+        };
+
+        vid2.onended = () => {
+            triggerPauseEffect(vid2);
+            btn2.classList.add('visible');
+        };
+
+        btn2.onclick = () => {
+            btn2.classList.remove('visible');
+            btn2.style.display = 'none';
+            
+            removePauseEffect(vid2);
+            vid2.classList.remove('active');
+            vid3.classList.add('active');
+            vid3.play();
+        };
+
+        vid3.onended = () => {
+            triggerPauseEffect(vid3);
+            btn3.classList.add('visible');
+        };
+
+        btn3.onclick = () => {
+            btn3.classList.remove('visible');
+            
+            // Fade out the music slightly as we transition
+            let fadeAudio = setInterval(() => {
+                if (ambientMusic.volume > 0.05) {
+                    ambientMusic.volume -= 0.05;
+                } else {
+                    clearInterval(fadeAudio);
+                    ambientMusic.pause();
+                }
+            }, 100);
+
+            document.body.style.transition = "background-color 2s ease";
+            vid3.classList.remove('active');
+            
+            setTimeout(() => {
+                window.location.href = "custom_web/searchengine.html";
+            }, 2000); 
+        };
+    </script>
+</body>
+</html>

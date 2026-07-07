@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Addiction - Mobile Native</title>
+
+    <style>
+        /* Disable all text selection & tap highlights for mobile */
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            user-select: none; -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000000; color: #ffffff;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            overflow: hidden; height: 100vh; width: 100vw;
+            display: flex; flex-direction: column;
+        }
+
+        /* =========================================
+           PSYCHOLOGICAL BACKGROUND
+           ========================================= */
+        .breathing-shadow { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: radial-gradient(circle at 50% 50%, rgba(20, 20, 20, 0) 20%, rgba(0, 0, 0, 1) 95%); 
+            z-index: 2; pointer-events: none; 
+            animation: breathe-shadow 6s infinite alternate ease-in-out;
+        }
+        @keyframes breathe-shadow { 0% { opacity: 0.7; transform: scale(1); } 100% { opacity: 1; transform: scale(1.08); } }
+
+        .static-grain { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background-image: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+            opacity: 0.04; z-index: 1; pointer-events: none; 
+        }
+
+        /* =========================================
+           MOBILE-FIRST UI DESIGN (PORTRAIT)
+           ========================================= */
+        #main-ui { 
+            width: 100%; height: 100%; 
+            display: flex; flex-direction: column; 
+            position: relative; z-index: 5; 
+        }
+        
+        #gate-screen {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 50; background-color: #000; cursor: pointer; transition: opacity 2s ease;
+        }
+
+        .gate-text { 
+            color: #555; font-size: 1.2rem; letter-spacing: 10px; 
+            animation: pulse-text 2.5s infinite alternate; text-transform: uppercase; font-weight: 300;
+        }
+        @keyframes pulse-text { 0% { opacity: 0.1; } 100% { opacity: 1; } }
+
+        #core-menu {
+            display: none; opacity: 0; width: 100%; height: 100%; transition: opacity 2.5s ease;
+            flex-direction: column; justify-content: center; align-items: center; 
+            padding: 40px 20px; text-align: center;
+        }
+
+        /* Top: Title Stack */
+        .menu-top { display: flex; flex-direction: column; align-items: center; margin-bottom: 60px; }
+        
+        .game-title { 
+            font-size: 3.5rem; font-weight: 200; letter-spacing: 14px; color: #ffffff; 
+            text-transform: uppercase; margin-bottom: 8px; margin-right: -14px; /* offset tracking */
+        }
+        .demo-subtitle { 
+            color: #555; font-size: 0.85rem; letter-spacing: 8px; text-transform: uppercase; 
+            margin-right: -8px;
+        }
+
+        /* Bottom: Mobile Vertical List */
+        .menu-bottom { 
+            display: flex; flex-direction: column; align-items: center; 
+            gap: 25px; width: 100%; max-width: 300px; 
+        }
+
+        .menu-item {
+            background: transparent; border: none; 
+            color: #777; font-size: 1.2rem; letter-spacing: 6px; 
+            padding: 15px 0; cursor: pointer; transition: color 0.3s ease, transform 0.2s ease; 
+            text-transform: uppercase; font-weight: 300; width: 100%;
+        }
+
+        .menu-item:active { color: #fff; transform: scale(0.95); }
+        #quit-btn:active { color: #880000; }
+
+        .privacy-link { 
+            position: absolute; bottom: 30px; color: #333; font-size: 0.7rem; 
+            text-decoration: none; letter-spacing: 3px; text-transform: uppercase; 
+        }
+
+        /* =========================================
+           SCROLLABLE FULLSCREEN OVERLAYS
+           ========================================= */
+        .overlay-screen {
+            display: none; opacity: 0; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #050505; z-index: 30; flex-direction: column; align-items: center;
+            transition: opacity 0.4s ease; overflow-y: auto; padding: 40px 20px;
+            -webkit-overflow-scrolling: touch; 
+        }
+
+        .overlay-content { 
+            width: 100%; max-width: 400px; display: flex; flex-direction: column; 
+            align-items: center; text-align: center; padding-bottom: 40px;
+        }
+
+        .overlay-title { 
+            font-weight: 200; font-size: 1.5rem; letter-spacing: 6px; margin-bottom: 40px; 
+            color: #fff; text-transform: uppercase; 
+        }
+        
+        .demo-text-body { 
+            color: #999; font-size: 1rem; line-height: 1.7; margin-bottom: 25px; 
+            width: 100%; font-weight: 300; 
+        }
+        
+        .warning-box { 
+            border: 1px solid #222; background: rgba(15,0,0,0.3); padding: 25px 20px; 
+            margin-bottom: 40px; width: 100%; border-radius: 4px;
+        }
+
+        /* Mobile Block Buttons */
+        .warning-btn-col { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+        
+        .block-btn {
+            width: 100%; padding: 20px; font-size: 1rem; letter-spacing: 3px; font-weight: 300;
+            text-transform: uppercase; cursor: pointer; border: 1px solid;
+            background: transparent; transition: 0.2s; border-radius: 4px;
+        }
+        
+        .btn-safe { border-color: #555; color: #aaa; }
+        .btn-safe:active { background: #fff; color: #000; border-color: #fff;}
+        
+        .btn-danger { border-color: #440000; color: #ff4444; }
+        .btn-danger:active { background: #ff0000; color: #fff;}
+
+        /* Settings Elements */
+        .setting-group { 
+            display: flex; flex-direction: column; align-items: flex-start; gap: 15px;
+            width: 100%; padding: 25px 0; border-bottom: 1px solid #111; 
+        }
+        .setting-header {
+            display: flex; justify-content: space-between; width: 100%; align-items: center;
+        }
+        .setting-label { font-size: 1rem; letter-spacing: 3px; color: #888; text-transform: uppercase; font-weight: 300;}
+        
+        /* Custom Mobile Toggle */
+        input[type="checkbox"] { 
+            width: 50px; height: 26px; appearance: none; background: #222; border-radius: 13px;
+            position: relative; outline: none; transition: 0.3s;
+        }
+        input[type="checkbox"]:checked { background: #555; }
+        input[type="checkbox"]::before {
+            content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%;
+            top: 2px; left: 2px; background: #888; transition: 0.3s;
+        }
+        input[type="checkbox"]:checked::before { transform: translateX(24px); background: #fff; }
+        
+        /* Custom Mobile Slider */
+        input[type="range"] { appearance: none; -webkit-appearance: none; width: 100%; background: transparent; padding: 10px 0; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #222; border-radius: 2px;}
+        input[type="range"]::-webkit-slider-thumb { 
+            -webkit-appearance: none; height: 28px; width: 28px; border-radius: 50%; 
+            background: #ccc; margin-top: -12px; box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .close-btn { 
+            margin-top: 50px; padding: 20px; width: 100%; font-size: 1rem; background: transparent; 
+            color: #666; border: 1px solid #333; text-transform: uppercase; letter-spacing: 4px; font-weight: 300;
+        }
+        .close-btn:active { background: #222; color: #fff; }
+
+        .credit-block { margin-bottom: 40px; }
+        .credit-role { color: #555; font-size: 0.8rem; letter-spacing: 4px; margin-bottom: 8px; text-transform: uppercase; font-weight: 300;}
+        .credit-name { color: #ccc; font-size: 1.4rem; letter-spacing: 5px; font-weight: 300; text-transform: uppercase;}
+    </style>
+</head>
+
+<body>
+    <div class="static-grain"></div>
+    <div class="breathing-shadow"></div>
+
+    <div id="main-ui">
+        <audio id="bg-music" loop>
+            <source src="audio/bgm.mp3" type="audio/mpeg">
+        </audio>
+        <audio id="click-sfx">
+            <source src="audio/click.mp3" type="audio/mpeg">
+        </audio>
+
+        <div id="gate-screen">
+            <div class="gate-text">TAP TO AWAKEN</div>
+        </div>
+
+        <div id="core-menu">
+            <div class="menu-top">
+                <h1 class="game-title">ADDICTION</h1>
+                <div class="demo-subtitle">Mobile Evaluation v0.1</div>
+            </div>
+
+            <div class="menu-bottom">
+                <button class="menu-item" id="new-game-btn">Begin Evaluation</button>
+                <button class="menu-item" id="settings-btn">Sensory Settings</button>
+                <button class="menu-item" id="credits-btn">Records</button>
+                <button class="menu-item" id="quit-btn">Disconnect</button>
+            </div>
+
+            <a href="https://shazzu-x.netlify.app/privacy" target="_blank" class="privacy-link">Privacy</a>
+        </div>
+
+        <div id="demo-warning-screen" class="overlay-screen">
+            <div class="overlay-content">
+                <h2 class="overlay-title" style="color: #880000;">DEVELOPER WARNING</h2>
+                
+                <p class="demo-text-body" style="color: #ddd;">
+                    Let's be completely honest before you start.
+                </p>
+                
+                <p class="demo-text-body">
+                    This is a game, not the real dark web. However, the psychological horror inside is very intense. It contains extremely heavy, depressive, and suicidal text.
+                </p>
+
+                <p class="demo-text-body">
+                    I made this specifically for people who are <strong style="color: #ddd;">mentally strong</strong>. It is for players who enjoy dark fiction and being psychologically tested.
+                </p>
+
+                <div class="warning-box">
+                    <strong style="color: #ff3333; letter-spacing: 2px; display:block; margin-bottom: 10px;">MY SINCERE REQUEST:</strong>
+                    <span style="color: #999; font-size: 0.9rem; line-height: 1.5; display:block;">If you are currently struggling with your mental health, I strongly request you to stop right here. Please uninstall this game right now. Do not force yourself to play this.</span>
+                </div>
+
+                <p class="demo-text-body" style="color: #fff; text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; margin-bottom: 25px;">
+                    Does this belong to your fantasy?
+                </p>
+
+                <div class="warning-btn-col">
+                    <button class="block-btn btn-safe" id="cancel-demo-btn">NO. UNINSTALL.</button>
+                    <button class="block-btn btn-danger" id="continue-demo-btn">YES. I AM READY.</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-screen" class="overlay-screen">
+            <div class="overlay-content">
+                <h2 class="overlay-title">SENSORY SETTINGS</h2>
+                
+                <div class="setting-group">
+                    <div class="setting-header">
+                        <span class="setting-label">Background Audio</span>
+                        <input type="checkbox" id="bgm-toggle" checked>
+                    </div>
+                </div>
+                
+                <div class="setting-group" id="volume-group">
+                    <div class="setting-header">
+                        <span class="setting-label">Master Volume</span>
+                    </div>
+                    <input type="range" id="bgm-volume" min="0" max="1" step="0.05" value="0.4">
+                </div>
+                
+                <button class="close-btn" id="close-settings-btn">Apply & Return</button>
+            </div>
+        </div>
+
+        <div id="credits-screen" class="overlay-screen">
+            <div class="overlay-content">
+                <h2 class="overlay-title">RECORDS</h2>
+                <div class="credit-block">
+                    <p class="credit-role">Developer</p>
+                    <h3 class="credit-name">Shahzad Ali</h3>
+                </div>
+                <div class="credit-block">
+                    <p class="credit-role">Publisher</p>
+                    <h3 class="credit-name">Shazzux</h3>
+                </div>
+                <button class="close-btn" id="close-credits-btn">Return</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gateScreen = document.getElementById('gate-screen');
+        const coreMenu = document.getElementById('core-menu');
+        const bgMusic = document.getElementById('bg-music');
+        const clickSfx = document.getElementById('click-sfx');
+
+        const creditsScreen = document.getElementById('credits-screen');
+        const settingsScreen = document.getElementById('settings-screen');
+        const demoWarningScreen = document.getElementById('demo-warning-screen');
+
+        const bgmToggle = document.getElementById('bgm-toggle');
+        const bgmVolume = document.getElementById('bgm-volume');
+        const volumeGroup = document.getElementById('volume-group');
+
+        // Allow audio context to load on first tap (iOS requirement)
+        document.body.addEventListener('touchstart', function() {
+            clickSfx.load();
+        }, { once: true });
+
+        function triggerHaptic() {
+            // Adds subtle phone vibration if supported
+            if (navigator.vibrate) {
+                navigator.vibrate(40);
+            }
+        }
+
+        function playClickSound() {
+            triggerHaptic();
+            clickSfx.currentTime = 0;
+            clickSfx.volume = 0.8; 
+            clickSfx.play().catch(() => { });
+        }
+
+        function openOverlay(overlayElement) {
+            playClickSound();
+            overlayElement.style.display = "flex";
+            overlayElement.scrollTop = 0; 
+            setTimeout(() => { overlayElement.style.opacity = "1"; }, 50);
+        }
+
+        function closeOverlay(overlayElement) {
+            playClickSound();
+            overlayElement.style.opacity = "0";
+            setTimeout(() => { overlayElement.style.display = "none"; }, 400);
+        }
+
+        // --- Init Logic ---
+        gateScreen.addEventListener('click', () => {
+            playClickSound();
+
+            let elem = document.documentElement;
+            if (elem.requestFullscreen) elem.requestFullscreen();
+            else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+            else if (elem.msRequestFullscreen) elem.msRequestFullscreen();
+
+            if (bgmToggle.checked) {
+                bgMusic.volume = bgmVolume.value;
+                bgMusic.play().catch(() => { });
+            }
+
+            gateScreen.style.opacity = "0";
+
+            setTimeout(() => {
+                gateScreen.style.display = "none";
+                coreMenu.style.display = "flex";
+                setTimeout(() => { coreMenu.style.opacity = "1"; }, 100);
+            }, 2000);
+        });
+
+        // --- Overlay Logic ---
+        document.getElementById('settings-btn').addEventListener('click', () => openOverlay(settingsScreen));
+        document.getElementById('close-settings-btn').addEventListener('click', () => closeOverlay(settingsScreen));
+
+        document.getElementById('credits-btn').addEventListener('click', () => openOverlay(creditsScreen));
+        document.getElementById('close-credits-btn').addEventListener('click', () => closeOverlay(creditsScreen));
+
+        // --- Settings Logic ---
+        bgmToggle.addEventListener('change', (e) => {
+            playClickSound();
+            if (e.target.checked) {
+                bgMusic.play().catch(() => { });
+                volumeGroup.style.opacity = "1";
+                bgmVolume.disabled = false;
+            } else {
+                bgMusic.pause();
+                volumeGroup.style.opacity = "0.3";
+                bgmVolume.disabled = true;
+            }
+        });
+
+        bgmVolume.addEventListener('input', (e) => { bgMusic.volume = e.target.value; });
+
+        // --- Navigation Logic ---
+        document.getElementById('new-game-btn').addEventListener('click', () => {
+            openOverlay(demoWarningScreen);
+        });
+
+        document.getElementById('cancel-demo-btn').addEventListener('click', () => {
+            closeOverlay(demoWarningScreen);
+        });
+
+        document.getElementById('continue-demo-btn').addEventListener('click', () => {
+            playClickSound();
+
+            demoWarningScreen.style.opacity = "0";
+            coreMenu.style.opacity = "0";
+
+            let fadeAudio = setInterval(() => {
+                if (bgMusic.volume > 0.05) bgMusic.volume -= 0.05;
+                else { bgMusic.pause(); clearInterval(fadeAudio); }
+            }, 250);
+
+            setTimeout(() => { window.location.href = "m_game.html"; }, 3000);
+        });
+
+        document.getElementById('quit-btn').addEventListener('click', () => {
+            playClickSound();
+            coreMenu.style.opacity = "0";
+            setTimeout(() => {
+                window.close();
+                document.body.style.backgroundColor = "#000";
+                document.body.innerHTML = "";
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

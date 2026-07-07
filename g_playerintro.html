@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Confession</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        /* Subtle static grain in the background */
+        .static-grain { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background-image: url('data:image/svg+xml;utf8,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E');
+            opacity: 0.04; z-index: 1; pointer-events: none; 
+        }
+
+        #text-container {
+            z-index: 10;
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+        }
+
+        .narrative-text {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            color: #cccccc;
+            font-weight: 300;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 3s ease-in-out;
+        }
+
+        /* Used for the final, gut-punch line */
+        .final-text {
+            color: #ff3333;
+            font-weight: 400;
+            letter-spacing: 3px;
+        }
+
+        .visible {
+            opacity: 1 !important;
+        }
+
+        /* For mobile responsiveness */
+        @media (max-width: 768px) {
+            .narrative-text { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="static-grain"></div>
+
+    <div id="text-container">
+        <div id="story-text" class="narrative-text"></div>
+    </div>
+
+    <script>
+        // --- AUDIO SETUP ---
+        const ambientMusic = new Audio('audio/dark_horror_ambient.mp3');
+        ambientMusic.loop = true;
+        ambientMusic.volume = 0.4; // 40% volume
+
+        // --- THE STORY ---
+        const storyLines = [
+            "My name is Rajesh. I used to be a simple kid.",
+            "From nursery all the way to the 8th grade, I was the class topper. The smart one. The boy everyone was proud of.",
+            "But then my school changed. And something inside me changed, too.",
+            "My grades started slipping. 55% in 9th grade. Barely a 57% in my 10th boards.",
+            "By 11th grade, the shame was so heavy I couldn't even bring my report card home to show my parents.",
+            "Then came the 12th board exams. I scored 34%. I completely failed.",
+            "My only dream was to take PCM, study computer science, and build things. That dream died the day the results came out. There were no second chances.",
+            "I broke my family's expectations. I shattered everyone's trust. I became a failed person.",
+            "Now, no one cares about me. I just feel this massive, crushing emptiness.",
+            "But it didn't happen overnight. The downfall started years ago.",
+            "I was in the 7th grade when COVID-19 hit. The world shut down. We got massive holidays, and I was left alone with a screen.",
+            "A friend told me about the hidden parts of the internet. I was curious. I asked him to show me.",
+            "He introduced me to the filth... adult sites, illegal gambling, the dark web, gore, and anonymous hacking forums.",
+            "I thought it was just for fun. Just harmless exploring.",
+            "I didn't even realize when the curiosity turned into a sick, inescapable addiction. It consumed my brain. It ate my potential.",
+            "<span class='final-text'>I was 12 years old when that lockdown started.<br><br>I am 34 now. And I never really left that dark room.</span>"
+        ];
+
+        let currentIndex = 0;
+        let isTransitioning = false;
+        let textTimer;
+
+        const textElement = document.getElementById('story-text');
+
+        // Function to display a line of text
+        function showLine(index) {
+            if (index >= storyLines.length) {
+                finishIntro();
+                return;
+            }
+
+            isTransitioning = true;
+            textElement.innerHTML = storyLines[index];
+            
+            // Short delay before fading in
+            setTimeout(() => {
+                textElement.classList.add('visible');
+                isTransitioning = false;
+
+                // Calculate reading time based on word count (approx 250ms per word + 3s base)
+                const wordCount = storyLines[index].split(' ').length;
+                const readTime = 3000 + (wordCount * 250);
+
+                // Auto-advance
+                textTimer = setTimeout(() => {
+                    hideLineAndNext();
+                }, readTime);
+
+            }, 500); // 0.5s pause in the dark before text appears
+        }
+
+        function hideLineAndNext() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            clearTimeout(textTimer);
+
+            textElement.classList.remove('visible');
+
+            // Wait for fade out to complete before loading next line
+            setTimeout(() => {
+                currentIndex++;
+                showLine(currentIndex);
+            }, 3000); // 3-second fade-out duration
+        }
+
+        function finishIntro() {
+            // Fade out the music slowly as we transition
+            let fadeAudio = setInterval(() => {
+                if (ambientMusic.volume > 0.05) {
+                    ambientMusic.volume -= 0.05;
+                } else {
+                    clearInterval(fadeAudio);
+                    ambientMusic.pause();
+                }
+            }, 200);
+
+            // Redirect to the room sequence
+            document.body.style.opacity = 0;
+            document.body.style.transition = "opacity 2s ease";
+            setTimeout(() => {
+                window.location.href = "entering_room.html"; 
+            }, 2000);
+        }
+
+        // Start the sequence
+        window.onload = () => {
+            // Attempt to start the background music
+            // Note: Browsers may block this if the user hasn't interacted with the page beforehand
+            ambientMusic.play().catch(e => console.log("Audio autoplay waiting on previous interaction."));
+            
+            // Initial delay before the first word appears
+            setTimeout(() => {
+                showLine(currentIndex);
+            }, 2000);
+        };
+
+    </script>
+</body>
+</html>
