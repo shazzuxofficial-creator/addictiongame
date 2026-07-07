@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Deep Directory - Restricted Access</title>
+
+    <style>
+        /* --- Ensures the base layer is pure black for the fade effect --- */
+        html {
+            background-color: #000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #080808;
+            color: #c4c4c4;
+            font-family: 'Verdana', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+
+            /* --- Start invisible, but fade in quickly --- */
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+        }
+
+        .ad-container { width: 728px; height: 90px; background-color: #111; border: 1px solid #333; margin-bottom: 40px; display: flex; justify-content: center; align-items: center; overflow: hidden; cursor: pointer; }
+        .ad-image { width: 100%; height: 100%; object-fit: cover; animation: sketchy-flicker 6s infinite; }
+        
+        @keyframes sketchy-flicker {
+            0%, 2%, 4%, 100% { opacity: 1; filter: contrast(1) invert(0); }
+            1% { opacity: 0.2; filter: contrast(3); }
+            3% { opacity: 0.8; filter: invert(1) hue-rotate(90deg); }
+            5% { opacity: 0; }
+            6% { opacity: 1; }
+            45% { opacity: 1; }
+            46% { opacity: 0.5; filter: contrast(2); }
+            47% { opacity: 1; filter: contrast(1); }
+            75% { transform: translate(1px, 1px); }
+            76% { transform: translate(-1px, -2px); }
+            77% { transform: translate(0, 0); }
+        }
+
+        .header-area { width: 900px; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
+        
+        .title {
+            font-size: 2.8rem;
+            color: #ffffff;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.8);
+        }
+
+        .warning-text {
+            color: #cc3333;
+            font-size: 0.85rem;
+            font-weight: bold;
+            background: rgba(204, 51, 51, 0.1);
+            padding: 10px;
+            border-left: 3px solid #cc3333;
+        }
+
+        .directory-container { width: 900px; display: grid; grid-template-columns: 1fr 1fr; gap: 50px; }
+        .category { margin-bottom: 30px; }
+        
+        .category-title {
+            font-size: 1.2rem;
+            color: #990000;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .link-block { margin-bottom: 22px; }
+        .onion-link { color: #4a90e2; text-decoration: none; font-size: 1.05rem; font-weight: bold; }
+        .onion-link:hover { color: #ffffff; text-decoration: underline; }
+        .onion-link:visited { color: #7e57c2; }
+        .plot-link { color: #ff3333 !important; text-shadow: 0 0 5px rgba(255, 51, 51, 0.5); }
+        
+        .onion-url {
+            display: block;
+            font-family: 'Courier New', Courier, monospace;
+            color: #555;
+            font-size: 0.8rem;
+            margin-top: 2px;
+            margin-bottom: 4px;
+        }
+
+        .link-desc { font-size: 0.85rem; color: #888; line-height: 1.4; }
+
+        #alert-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .alert-box {
+            background-color: #1a1a1a;
+            border: 2px solid #444;
+            width: 400px;
+            box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            animation: hard-snap 0.1s ease-out;
+        }
+
+        @keyframes hard-snap {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .alert-header {
+            background-color: #660000;
+            color: #fff;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .alert-close-x { cursor: pointer; color: #ff9999; }
+        .alert-close-x:hover { color: #fff; }
+        .alert-body { padding: 25px 20px; color: #ccc; font-size: 0.95rem; line-height: 1.5; text-align: center; border-bottom: 1px solid #333; }
+        .alert-footer { padding: 15px; display: flex; justify-content: center; background-color: #111; }
+        .alert-btn { background-color: #333; color: #fff; border: 1px solid #555; padding: 8px 30px; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; }
+        .alert-btn:hover { background-color: #555; }
+
+        .fake-notification {
+            position: fixed;
+            bottom: 30px;
+            right: -350px;
+            width: 320px;
+            background-color: #050505;
+            border: 1px solid #4a90e2;
+            border-left: 5px solid #4a90e2;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+            transition: right 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 10000;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.9);
+        }
+
+        .fake-notification:hover { background-color: #111; }
+        .notif-title { color: #4a90e2; font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; font-family: 'Courier New', monospace; letter-spacing: 1px; }
+        .notif-body { color: #ccc; font-size: 0.85rem; font-family: 'Verdana', sans-serif; }
+    </style>
+</head>
+
+<body>
+
+    <div id="incoming-msg" class="fake-notification">
+        <div class="notif-title">INCOMING TRANSMISSION</div>
+        <div class="notif-body">Anon_9921: Are you there?</div>
+    </div>
+
+    <div id="alert-overlay">
+        <div class="alert-box">
+            <div class="alert-header">
+                <span id="alert-title">SYSTEM NOTICE</span>
+                <span class="alert-close-x" onclick="closeSystemAlert()">X</span>
+            </div>
+            <div class="alert-body" id="alert-message">Error.</div>
+            <div class="alert-footer">
+                <button class="alert-btn" onclick="closeSystemAlert()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-container" id="ad-top">
+        <img src="https://picsum.photos/728/90?random=1" alt="Advertisement" class="ad-image">
+    </div>
+
+    <div class="header-area">
+        <h1 class="title">The Deep Directory</h1>
+        <div class="warning-text">
+            NOTICE: You are navigating the uncensored web. Browse at your own risk. Do not use personal credentials. Ensure your VPN protocol is active.
+        </div>
+    </div>
+
+    <div class="directory-container">
+        <div>
+            <div class="category">
+                <h2 class="category-title">Media & Comms</h2>
+                <div class="link-block">
+                    <a href="#" class="onion-link" id="relay-link">Shadow Relay (Anonymous Chat)</a>
+                    <span class="onion-url">http://shdwrl883921x.onion</span>
+                    <p class="link-desc">P2P untraceable text relays. You never know who—or what—is on the other end.</p>
+                </div>
+                <div class="link-block">
+                    <a href="#" class="onion-link auth-link">Unsecured Feeds (Crazy Videos)</a>
+                    <span class="onion-url">http://unscrdfd33921xx.onion</span>
+                    <p class="link-desc">Raw, unfiltered surveillance cameras from inside private homes and abandoned buildings.</p>
+                </div>
+                <div class="link-block">
+                    <a href="#" class="onion-link auth-link">The Static Frequency</a>
+                    <span class="onion-url">http://sttcfrq99201mmx.onion</span>
+                    <p class="link-desc">Live audio from abandoned military numbers stations. Keep listening.</p>
+                </div>
+            </div>
+
+            <div class="category">
+                <h2 class="category-title">Marketplaces</h2>
+                <div class="link-block">
+                    <a href="#" class="onion-link auth-link">The Obsidian Exchange</a>
+                    <span class="onion-url">http://obsdnxc9921xxm.onion</span>
+                    <p class="link-desc">Escrow only. Traded secrets, leaked source codes, and forbidden hardware.</p>
+                </div>
+                <div class="link-block">
+                    <a href="#" class="onion-link auth-link">The Erasure Syndicate</a>
+                    <span class="onion-url">http://ersrsynd55001ll.onion</span>
+                    <p class="link-desc">Digital mercenaries. We wipe digital footprints and existences for the right price.</p>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="category">
+                <h2 class="category-title">Forbidden Data</h2>
+                <div class="link-block">
+                    <a href="#" class="onion-link dead-link">The Redacted Vault (Govt Files)</a>
+                    <span class="onion-url">http://rdctdvlt882mma.onion</span>
+                    <p class="link-desc">Classified DARPA documents and black-site locations. Highly monitored node.</p>
+                </div>
+                <div class="link-block">
+                    <a href="#" class="onion-link dead-link">The Doppelganger Index</a>
+                    <span class="onion-url">http://dpplgnr44109zzq.onion</span>
+                    <p class="link-desc">Upload a photo. Find your exact lookalike. Warning: Do not attempt contact.</p>
+                </div>
+                <div class="link-block">
+                    <a href="#" class="onion-link dead-link">Memory Extraction Archives</a>
+                    <span class="onion-url">http://mmryxtrct7711aq.onion</span>
+                    <p class="link-desc">Raw text dumps of digital diaries from people right before they vanished.</p>
+                </div>
+            </div>
+
+            <div class="category">
+                <h2 class="category-title">The Void</h2>
+                <div class="link-block">
+                    <a href="#" class="onion-link dead-link">Abandoned Node 88A</a>
+                    <span class="onion-url">http://nd88a99201mza.onion</span>
+                    <p class="link-desc">A server running untouched since 1999. It keeps generating text on its own.</p>
+                </div>
+                <div class="link-block">
+                    <a href="#" class="onion-link plot-link interactive-link" data-target="nullRoot.html">The Null Route (Endless Feed)</a>
+                    <span class="onion-url">http://nullrt883392xxz.onion</span>
+                    <p class="link-desc">The deepest point of the web. Infinite sensory feed. Warning: High risk of network exposure.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- AUDIO SETUP ---
+        // Notice the ../ path. This means "Go up one folder from 'custom_web', then into 'audio'"
+        const clickSfx = new Audio('../audio/igoec.mp3');
+        const notifSfx = new Audio('../audio/ic.mp3');
+
+        // Play sound on EVERY click anywhere on the page
+        document.addEventListener('click', () => {
+            clickSfx.currentTime = 0; 
+            clickSfx.play().catch(e => console.log("Audio blocked by browser policy"));
+        });
+
+        // --- FAST FADE IN ON LOAD ---
+        window.onload = () => {
+            // Fires immediately when the DOM is ready, removing the artificial delay
+            document.body.style.opacity = '1';
+        };
+
+        const alertOverlay = document.getElementById('alert-overlay');
+        const alertTitle = document.getElementById('alert-title');
+        const alertMessage = document.getElementById('alert-message');
+        const alertHeader = document.querySelector('.alert-header');
+
+        function showSystemAlert(title, message, isAuth = false) {
+            alertTitle.innerText = title;
+            alertMessage.innerHTML = message;
+            if (isAuth) { alertHeader.style.backgroundColor = '#cc6600'; }
+            else { alertHeader.style.backgroundColor = '#660000'; }
+            alertOverlay.style.display = 'flex';
+        }
+
+        function closeSystemAlert() { alertOverlay.style.display = 'none'; }
+
+        setInterval(() => {
+            const topAd = document.querySelector('#ad-top .ad-image');
+            topAd.src = `https://picsum.photos/728/90?random=${new Date().getTime()}`;
+        }, 8000);
+
+        // --- THE POPUP LOGIC ---
+        const relayState = sessionStorage.getItem('shadowRelayState');
+
+        if (relayState === 'visited_offline') {
+            setTimeout(() => {
+                notifSfx.play().catch(e => console.log("Notification audio blocked"));
+                document.getElementById('incoming-msg').style.right = '30px';
+            }, 4000);
+        }
+
+        document.getElementById('incoming-msg').addEventListener('click', () => {
+            sessionStorage.setItem('shadowRelayState', 'message_received');
+            document.body.style.opacity = '0.5';
+            setTimeout(() => { window.location.href = "shadow_relay.html"; }, 500);
+        });
+
+        document.getElementById('relay-link').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (relayState === 'visited_offline') {
+                sessionStorage.setItem('shadowRelayState', 'message_received');
+            }
+            document.body.style.opacity = '0.5';
+            setTimeout(() => { window.location.href = "shadow_relay.html"; }, 1500);
+        });
+
+        const interactiveLinks = document.querySelectorAll('.interactive-link');
+        interactiveLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetPage = link.getAttribute('data-target');
+                document.body.style.opacity = '0.5';
+                setTimeout(() => { window.location.href = targetPage; }, 1500);
+            });
+        });
+
+        const authLinks = document.querySelectorAll('.auth-link');
+        authLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showSystemAlert("ACCESS DENIED", "Valid authentication token or Escrow login required to access this node.<br><br>Anonymous routing rejected.", true);
+            });
+        });
+
+        const deadLinks = document.querySelectorAll('.dead-link');
+        deadLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showSystemAlert("CONNECTION FAILED", "ERROR 502: Bad Gateway.<br><br>Target node is offline, encrypted, or actively refusing connections. Check your VPN protocol.", false);
+            });
+        });
+    </script>
+</body>
+
+</html>

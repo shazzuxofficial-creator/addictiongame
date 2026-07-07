@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0x000000 - The Null Route</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #000;
+            color: #444; /* Very dark grey, barely readable */
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            /* Hide scrollbar for a cleaner void look */
+            scrollbar-width: none; 
+        }
+        
+        body::-webkit-scrollbar { display: none; }
+
+        /* The fake webcam recording light */
+        .recording-dot {
+            position: fixed;
+            top: 20px;
+            right: 30px;
+            width: 12px;
+            height: 12px;
+            background-color: #ff0000;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ff0000;
+            animation: blink 2s infinite;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 5s ease;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        .feed-container {
+            width: 100%;
+            max-width: 600px;
+            padding: 50px 20px;
+            padding-bottom: 300px; /* <--- Forces scrollable space at the bottom */
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            text-align: center;
+        }
+
+        .feed-item {
+            font-size: 1rem;
+            letter-spacing: 1px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: riseUp 1s forwards ease-out;
+        }
+
+        /* The deeper they go, the redder and bigger the text gets */
+        .depth-warning { color: #880000; font-weight: bold; }
+        .depth-critical { color: #ff3333; font-size: 1.5rem; text-shadow: 0 0 10px red; letter-spacing: 5px; }
+
+        @keyframes riseUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .glitch-text { animation: intenseGlitch 0.1s infinite; }
+
+        @keyframes intenseGlitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-3px, 2px) }
+            40% { transform: translate(-1px, -3px) }
+            60% { transform: translate(3px, 1px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        #escape-btn {
+            display: none;
+            position: fixed;
+            bottom: 40px;
+            background: transparent;
+            color: #4a90e2;
+            border: 1px solid #4a90e2;
+            padding: 10px 20px;
+            font-family: inherit;
+            cursor: pointer;
+            z-index: 50;
+        }
+
+        #escape-btn:hover {
+            background: #4a90e2;
+            color: #000;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="recording-dot" id="rec-dot"></div>
+
+    <button id="escape-btn" onclick="abortRoute()">[ DISCONNECT ]</button>
+
+    <div class="feed-container" id="feed">
+        <div class="feed-item" style="color: #666; margin-bottom: 100px;">
+            Connection established. Null Route active.<br>Scroll to initiate sensory feed.
+        </div>
+    </div>
+
+    <script>
+        // Global Click Sound (Keeping it consistent with your other pages)
+        const universalClickSfx = new Audio('../audio/igoec.mp3');
+        document.addEventListener('click', () => {
+            universalClickSfx.currentTime = 0; 
+            universalClickSfx.play().catch(e => {});
+        });
+
+        const feedContainer = document.getElementById('feed');
+        const recDot = document.getElementById('rec-dot');
+        const escapeBtn = document.getElementById('escape-btn');
+        let scrollCount = 0;
+        let isGenerating = false;
+
+        // The psychological descent
+        const phase1 = [
+            "Data fragment missing.",
+            "Fetching anonymous logs...",
+            "User 8894 disconnected.",
+            "Empty directory.",
+            "Why are you still scrolling?",
+            "There is nothing here for you."
+        ];
+
+        const phase2 = [
+            "You spent 6 hours looking at a screen today.",
+            "Your eyes are burning.",
+            "Is it daytime or nighttime outside?",
+            "You haven't spoken to a real person in 48 hours.",
+            "Just one more scroll.",
+            "Keep feeding the machine.",
+            "It is so quiet in your room."
+        ];
+
+        const phase3 = [
+            "They aren't going to call you.",
+            "You are wasting your youth.",
+            "Rajesh, are you even awake?",
+            "You are rotting in this chair.",
+            "Look at your reflection in the dark screen.",
+            "You are completely alone."
+        ];
+
+        const phase4 = [
+            "WE CAN SEE YOU.",
+            "DON'T LOOK BEHIND YOU.",
+            "THE DOOR IS UNLOCKED.",
+            "THERE IS NO ESCAPE FROM THIS HABIT.",
+            "YOU DID THIS TO YOURSELF."
+        ];
+
+        // Function to grab a random line from the current phase array
+        function getRandomLine(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        // Generate new items when the user reaches the bottom
+        function generateFeedItems() {
+            if (isGenerating) return;
+            isGenerating = true;
+
+            // Generate 3-5 lines at a time
+            const linesToAdd = Math.floor(Math.random() * 3) + 3;
+
+            for (let i = 0; i < linesToAdd; i++) {
+                const item = document.createElement('div');
+                item.className = 'feed-item';
+
+                // Determine which phase of horror we are in based on how far they've scrolled
+                if (scrollCount < 5) {
+                    item.innerHTML = getRandomLine(phase1);
+                } else if (scrollCount < 12) {
+                    item.innerHTML = getRandomLine(phase2);
+                    if (scrollCount === 5) recDot.style.opacity = '1'; // Turn on fake webcam light
+                } else if (scrollCount < 20) {
+                    item.className = 'feed-item depth-warning';
+                    item.innerHTML = getRandomLine(phase3);
+                    escapeBtn.style.display = 'block'; // Give them a chance to leave
+                } else if (scrollCount < 30) {
+                    item.className = 'feed-item depth-critical';
+                    item.innerHTML = getRandomLine(phase4);
+                    // Start glitching the screen slightly
+                    document.body.style.backgroundColor = Math.random() > 0.8 ? '#0a0000' : '#000';
+                } else {
+                    // The Ultimate Trap - Infinite Loop
+                    item.className = 'feed-item depth-critical glitch-text';
+                    item.innerHTML = "103.45.22.109"; // The fake IP from your questionnaire
+                    escapeBtn.innerHTML = "[ ERROR: CONNECTION SEVERED ]";
+                    escapeBtn.style.color = "red";
+                    escapeBtn.style.borderColor = "red";
+                    escapeBtn.onclick = null; // Break the escape button
+                }
+
+                feedContainer.appendChild(item);
+                scrollCount++;
+            }
+
+            // Small delay before allowing more generation so they have to actually scroll
+            setTimeout(() => {
+                isGenerating = false;
+            }, 500);
+        }
+
+        // Listen for scrolling
+        window.addEventListener('scroll', () => {
+            // Check if user is near the bottom of the page
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 200) {
+                generateFeedItems();
+            }
+        });
+
+        // Initial generation: Force it to keep generating until it overflows the screen height
+        function initialFill() {
+            isGenerating = false; // Bypass the lock to let it fill instantly
+            generateFeedItems();
+            
+            // If the document is still shorter than the screen, run it again in 50ms
+            if (document.body.offsetHeight <= window.innerHeight + 200) {
+                setTimeout(initialFill, 50);
+            }
+        }
+        
+        // Start the fill process
+        initialFill();
+
+        function abortRoute() {
+            document.body.style.opacity = '0';
+            document.body.style.transition = 'opacity 1s ease';
+            setTimeout(() => {
+                window.location.href = "searchengine.html";
+            }, 1000);
+        }
+
+    </script>
+</body>
+</html>

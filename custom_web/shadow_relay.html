@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shadow Relay - Encrypted Comm</title>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background-color: #030303;
+            color: #888;
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* --- LAYOUT --- */
+        .sidebar { width: 300px; background-color: #0a0a0a; border-right: 1px solid #222; display: flex; flex-direction: column; }
+        .main-chat-area {
+            flex-grow: 1; display: flex; flex-direction: column;
+            background: repeating-linear-gradient(0deg, #030303, #030303 2px, #050505 2px, #050505 4px); 
+            height: 100vh;
+        }
+
+        /* --- SIDEBAR: CONTACTS --- */
+        .sidebar-header { padding: 20px; border-bottom: 1px solid #222; background-color: #000; }
+        .relay-title { color: #4a90e2; font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px; }
+        .status-text { font-size: 0.75rem; color: #555; }
+        .contact-list { flex-grow: 1; overflow-y: auto; padding: 10px 0; }
+        .contact { padding: 15px 20px; border-bottom: 1px solid #111; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; }
+        .contact:hover { background-color: #151515; }
+        
+        /* Status Dots */
+        .offline-dot { width: 8px; height: 8px; background-color: #440000; border-radius: 50%; margin-right: 15px; box-shadow: 0 0 5px rgba(255, 0, 0, 0.2); }
+        .online-dot { width: 8px; height: 8px; background-color: #00cc00; border-radius: 50%; margin-right: 15px; box-shadow: 0 0 8px rgba(0, 204, 0, 0.6); }
+
+        .contact-info { display: flex; flex-direction: column; }
+        .contact-name { color: #777; font-size: 0.95rem; font-weight: bold; margin-bottom: 3px; }
+        .contact-last-seen { color: #444; font-size: 0.7rem; }
+        .text-online { color: #00cc00 !important; font-weight: bold; letter-spacing: 1px;}
+
+        /* --- MAIN AREA --- */
+        .chat-header { padding: 20px; border-bottom: 1px solid #222; background-color: #0a0a0a; display: flex; justify-content: space-between; align-items: center; }
+        .chat-header h2 { color: #555; font-size: 1rem; letter-spacing: 1px; }
+        .return-btn { background: transparent; color: #4a90e2; border: 1px solid #4a90e2; padding: 5px 15px; cursor: pointer; font-family: inherit; font-size: 0.8rem; transition: all 0.3s; }
+        .return-btn:hover { background: #4a90e2; color: #000; }
+
+        /* Modified for perfect flex scrolling */
+        .chat-content { 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+            overflow: hidden; 
+            min-height: 0; /* Crucial for scrolling flex children */
+        }
+        
+        .world-chat-container { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; padding: 40px; text-align: center; }
+        .glitch-icon { font-size: 4rem; color: #222; margin-bottom: 20px; }
+        .world-chat-btn { background-color: #111; border: 2px solid #333; color: #aaa; padding: 20px 40px; font-size: 1.2rem; font-family: inherit; letter-spacing: 3px; text-transform: uppercase; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.8); }
+        .world-chat-btn:hover { border-color: #4a90e2; color: #fff; background-color: #050505; box-shadow: 0 0 15px rgba(74, 144, 226, 0.2); }
+        .world-chat-desc { margin-top: 15px; color: #444; font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
+
+        /* Dynamic Chat Messages */
+        .chat-history-wrapper { 
+            display: none; 
+            flex-direction: column; 
+            height: 100%; 
+            width: 100%; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            min-height: 0; /* Crucial for scrolling */
+        }
+        
+        .chat-msg-area { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 15px; 
+            padding: 20px 30px; 
+            text-align: left; 
+            scroll-behavior: smooth;
+        }
+        
+        .chat-msg-area::-webkit-scrollbar { width: 6px; }
+        .chat-msg-area::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        
+        .msg-system { color: #4a90e2; font-size: 0.8rem; margin-bottom: 10px; align-self: center; }
+        .msg-them { color: #aaa; background: #111; padding: 12px 18px; border-left: 3px solid #4a90e2; width: fit-content; font-size: 0.95rem; max-width: 80%; }
+        .msg-me { color: #fff; background: #222; padding: 12px 18px; border-right: 3px solid #7e57c2; width: fit-content; font-size: 0.95rem; align-self: flex-end; max-width: 80%; }
+        
+        .typing-indicator { color: #555; font-style: italic; font-size: 0.85rem; display: none; align-self: flex-start; padding: 10px 30px; }
+
+        /* --- NEW LINK FORMATTER CSS --- */
+        .chat-inline-link {
+            color: #ff3333;
+            text-decoration: underline;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .chat-inline-link:hover {
+            color: #ffffff;
+            text-shadow: 0 0 8px rgba(255, 51, 51, 0.8);
+        }
+
+        /* Player Choices */
+        .chat-choices { display: none; flex-direction: column; gap: 10px; width: 100%; padding: 20px 30px; border-top: 1px solid #222; background: #030303;}
+        .choice-btn { background: transparent; border: 1px solid #444; color: #888; padding: 12px 20px; text-align: left; font-family: inherit; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+        .choice-btn:hover { background: #1a1a1a; border-color: #7e57c2; color: #fff; padding-left: 25px; }
+
+        /* --- ALERT DIALOG --- */
+        #alert-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 9999; justify-content: center; align-items: center; }
+        .alert-box { background-color: #1a1a1a; border: 2px solid #555; width: 450px; box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; animation: hard-snap 0.1s ease-out; }
+        @keyframes hard-snap { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .alert-header { background-color: #880000; color: #fff; padding: 10px 15px; font-size: 0.95rem; font-weight: bold; letter-spacing: 1px; display: flex; justify-content: space-between; }
+        .alert-close-x { cursor: pointer; color: #ff9999; }
+        .alert-close-x:hover { color: #fff; }
+        .alert-body { padding: 30px 20px; color: #ddd; font-size: 0.95rem; line-height: 1.6; text-align: center; border-bottom: 1px solid #333; }
+        .alert-footer { padding: 15px; display: flex; justify-content: center; background-color: #111; }
+        .alert-btn { background-color: #333; color: #fff; border: 1px solid #555; padding: 8px 30px; font-size: 0.9rem; cursor: pointer; transition: background 0.2s; font-family: inherit; }
+        .alert-btn:hover { background-color: #555; }
+
+    </style>
+</head>
+<body>
+
+    <script src="anon_msg.js"></script>
+
+    <div id="alert-overlay">
+        <div class="alert-box">
+            <div class="alert-header">
+                <span id="alert-title">NOTICE</span>
+                <span class="alert-close-x" onclick="closeSystemAlert()">X</span>
+            </div>
+            <div class="alert-body" id="alert-message">Message</div>
+            <div class="alert-footer">
+                <button class="alert-btn" onclick="closeSystemAlert()">ACKNOWLEDGE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="relay-title">Shadow Relay</div>
+            <div class="status-text" id="network-status">Network: Disconnected (0 Peers)</div>
+        </div>
+        
+        <div class="contact-list">
+            <div class="contact" id="contact-anon">
+                <div class="offline-dot" id="dot-anon"></div>
+                <div class="contact-info">
+                    <span class="contact-name">Anon_9921</span>
+                    <span class="contact-last-seen" id="status-anon">Last seen: 412 days ago</span>
+                </div>
+            </div>
+            <div class="contact offline-user">
+                <div class="offline-dot"></div>
+                <div class="contact-info">
+                    <span class="contact-name">TheWatchman</span>
+                    <span class="contact-last-seen">Account Terminated</span>
+                </div>
+            </div>
+            <div class="contact offline-user">
+                <div class="offline-dot"></div>
+                <div class="contact-info">
+                    <span class="contact-name">NullBytes</span>
+                    <span class="contact-last-seen">Last seen: 2 hours ago</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-chat-area">
+        <div class="chat-header">
+            <h2 id="current-chat-header">No Active Session</h2>
+            <button class="return-btn" id="go-back-btn">Disconnect & Return</button>
+        </div>
+
+        <div class="chat-content" id="chat-content">
+            
+            <div class="world-chat-container" id="default-view">
+                <div class="glitch-icon">⚠</div>
+                <button class="world-chat-btn" id="world-chat-btn">Enter World Group Chat</button>
+                <div class="world-chat-desc">
+                    Connect to the global decentralized relay. Warning: Unmoderated zone.
+                </div>
+            </div>
+
+            <div class="chat-history-wrapper" id="active-chat-view">
+                
+                <div class="chat-msg-area" id="chat-history">
+                    </div>
+                
+                <div class="typing-indicator" id="typing-indicator">Anon_9921 is typing...</div>
+
+                <div class="chat-choices" id="chat-choices">
+                    <button class="choice-btn" id="btn-opt1" onclick="submitChoice(1)"></button>
+                    <button class="choice-btn" id="btn-opt2" onclick="submitChoice(2)"></button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- AUDIO SETUP ---
+        const universalClickSfx = new Audio('../audio/igoec.mp3');
+        const incomingSfx = new Audio('../audio/ic.mp3');
+        const outgoingSfx = new Audio('../audio/oc.mp3');
+
+        // Play universal click sound on EVERY click
+        document.addEventListener('click', () => {
+            universalClickSfx.currentTime = 0; 
+            universalClickSfx.play().catch(e => console.log("Universal click audio blocked"));
+        });
+
+        // --- Custom Alert Logic ---
+        const alertOverlay = document.getElementById('alert-overlay');
+        const alertTitle = document.getElementById('alert-title');
+        const alertMessage = document.getElementById('alert-message');
+
+        function showSystemAlert(title, message, isCritical = false) {
+            alertTitle.innerText = title;
+            alertMessage.innerHTML = message;
+            const header = document.querySelector('.alert-header');
+            if (isCritical) {
+                header.style.backgroundColor = '#cc0000';
+                alertTitle.style.color = '#fff';
+            } else {
+                header.style.backgroundColor = '#880000';
+            }
+            alertOverlay.style.display = 'flex';
+        }
+        function closeSystemAlert() { alertOverlay.style.display = 'none'; }
+
+        // --- NEW LINK FORMATTER UTILITY ---
+        function formatLinks(text) {
+            const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}[^\s]*)/ig;
+            return text.replace(urlRegex, function(url) {
+                return `<a href="bmgame.html" class="chat-inline-link">${url}</a>`;
+            });
+        }
+
+        // --- SESSION STORAGE & STATE ---
+        let relayState = sessionStorage.getItem('shadowRelayState');
+        let chatStep = parseInt(sessionStorage.getItem('chatStep')) || 0; 
+        
+        if (!relayState) {
+            sessionStorage.setItem('shadowRelayState', 'visited_offline');
+        }
+
+        // DOM Elements
+        const anonContact = document.getElementById('contact-anon');
+        const defaultView = document.getElementById('default-view');
+        const activeChatView = document.getElementById('active-chat-view');
+        const chatHistory = document.getElementById('chat-history');
+        const chatChoices = document.getElementById('chat-choices');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const btnOpt1 = document.getElementById('btn-opt1');
+        const btnOpt2 = document.getElementById('btn-opt2');
+
+        function scrollToBottom() {
+            setTimeout(() => {
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }, 50); 
+        }
+
+        function loadOptionsForStep() {
+            if (chatStep >= chatSequence.length) {
+                chatChoices.style.display = 'none'; 
+                return;
+            }
+            
+            btnOpt1.innerText = chatSequence[chatStep].opt1;
+            btnOpt2.innerText = chatSequence[chatStep].opt2;
+            chatChoices.style.display = 'flex';
+            scrollToBottom();
+        }
+
+        // Initialize user state
+        if (relayState === 'message_received') {
+            document.getElementById('dot-anon').className = 'online-dot';
+            document.getElementById('status-anon').innerText = "ONLINE";
+            document.getElementById('status-anon').classList.add('text-online');
+            document.getElementById('network-status').innerText = "Network: Connected (1 Peer)";
+
+            anonContact.addEventListener('click', () => {
+                document.getElementById('current-chat-header').innerText = 'Encrypted Session: Anon_9921';
+                defaultView.style.display = 'none';
+                activeChatView.style.display = 'flex';
+                
+                let savedHTML = sessionStorage.getItem('chatHistoryHTML');
+                if (savedHTML) {
+                    chatHistory.innerHTML = savedHTML;
+                    loadOptionsForStep();
+                } else {
+                    // Format the very first message
+                    let formattedMsg = formatLinks(chatSequence[0].anonMsg);
+                    chatHistory.innerHTML = `
+                        <div class="msg-system">[HANDSHAKE SUCCESSFUL - CONNECTION ENCRYPTED]</div>
+                        <div class="msg-them">${formattedMsg}</div>
+                    `;
+                    
+                    // Play incoming sound for the very first message
+                    incomingSfx.currentTime = 0;
+                    incomingSfx.play().catch(e => console.log("Incoming audio blocked"));
+
+                    loadOptionsForStep();
+                    sessionStorage.setItem('chatHistoryHTML', chatHistory.innerHTML);
+                }
+            });
+        } else {
+            anonContact.addEventListener('click', () => {
+                showSystemAlert("HANDSHAKE FAILED", "This peer is currently offline or refusing incoming connections.", false);
+            });
+        }
+
+        // --- THE CHAT PROGRESSION LOGIC ---
+        window.submitChoice = function(optionNumber) {
+            chatChoices.style.display = 'none';
+            const selectedText = optionNumber === 1 ? chatSequence[chatStep].opt1 : chatSequence[chatStep].opt2;
+
+            chatHistory.innerHTML += `<div class="msg-me">${selectedText}</div>`;
+            
+            // Play outgoing message sound
+            outgoingSfx.currentTime = 0;
+            outgoingSfx.play().catch(e => console.log("Outgoing audio blocked"));
+
+            scrollToBottom();
+
+            chatStep++;
+            sessionStorage.setItem('chatStep', chatStep);
+            sessionStorage.setItem('chatHistoryHTML', chatHistory.innerHTML);
+
+            typingIndicator.style.display = 'block';
+            scrollToBottom();
+
+            const delayMs = Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
+
+            setTimeout(() => {
+                typingIndicator.style.display = 'none';
+                
+                if (chatStep < chatSequence.length) {
+                    let nextFormattedMsg = formatLinks(chatSequence[chatStep].anonMsg);
+                    chatHistory.innerHTML += `<div class="msg-them">${nextFormattedMsg}</div>`;
+                    
+                    // Play incoming message sound when Anon replies
+                    incomingSfx.currentTime = 0;
+                    incomingSfx.play().catch(e => console.log("Incoming audio blocked"));
+
+                    loadOptionsForStep();
+                } else {
+                    chatHistory.innerHTML += `<div class="msg-system">[PEER DISCONNECTED]</div>`;
+                }
+
+                sessionStorage.setItem('chatHistoryHTML', chatHistory.innerHTML);
+                scrollToBottom();
+
+            }, delayMs);
+        };
+
+        // Generic offline users
+        const offlineUsers = document.querySelectorAll('.offline-user');
+        offlineUsers.forEach(user => {
+            user.addEventListener('click', () => {
+                showSystemAlert("HANDSHAKE FAILED", "This peer is currently offline or refusing incoming connections.", false);
+            });
+        });
+
+        // World Chat trap
+        document.getElementById('world-chat-btn').addEventListener('click', () => {
+            const warningMessage = `<strong style="color: #ff3333; font-size: 1.1rem;">CRITICAL SERVER HALT</strong><br><br>Due to a massive exploit resulting in the public leakage of over 14,000 user IP addresses, the World Group Chat server has been officially suspended.<br><br>Administrators are currently patching the node. Do not trust direct connections until further notice.`;
+            showSystemAlert("GLOBAL ROUTING ERROR", warningMessage, true);
+        });
+
+        // Return button
+        document.getElementById('go-back-btn').addEventListener('click', () => {
+            document.body.style.opacity = '0.5';
+            setTimeout(() => { window.location.href = "searchengine.html"; }, 500);
+        });
+
+    </script>
+</body>
+</html>

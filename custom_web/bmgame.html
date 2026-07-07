@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unknown Node - 0x77</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            flex-direction: column;
+        }
+
+        /* --- UTILITY CLASSES --- */
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 1.5s forwards;
+        }
+
+        .fade-out {
+            animation: fadeOut 1s forwards;
+        }
+
+        .glitch-text {
+            animation: textGlitch 0.2s infinite;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* --- SCREEN 1: INTRO --- */
+        #intro-screen {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .creepy-welcome {
+            color: #880000;
+            font-size: 2rem;
+            font-weight: bold;
+            letter-spacing: 5px;
+            margin-bottom: 40px;
+            text-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+        }
+
+        .btn-creepy {
+            background: transparent;
+            border: 1px solid #880000;
+            color: #880000;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .btn-creepy:hover {
+            background: #880000;
+            color: #000;
+            box-shadow: 0 0 20px #880000;
+        }
+
+        /* --- SCREEN 2: WARNING --- */
+        #warning-screen {
+            text-align: center;
+            max-width: 600px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .warning-text {
+            color: #aaaaaa;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 40px;
+            letter-spacing: 1px;
+        }
+
+        .warning-highlight {
+            color: #ff3333;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(255, 51, 51, 0.5);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .btn-abort {
+            border-color: #555;
+            color: #555;
+        }
+
+        .btn-abort:hover {
+            border-color: #fff;
+            color: #000;
+            background: #fff;
+            box-shadow: 0 0 15px #fff;
+        }
+
+        /* --- SCREEN 3: THE GAME --- */
+        #game-screen {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 20px;
+            position: relative;
+        }
+
+        .progress-container {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            width: 250px;
+            text-align: right;
+        }
+
+        .progress-label {
+            color: #555;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 8px;
+            background-color: #111;
+            border: 1px solid #333;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: #4a90e2;
+            box-shadow: 0 0 10px #4a90e2;
+            transition: width 0.5s ease-out;
+        }
+
+        .question-index {
+            color: #880000;
+            font-size: 1rem;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .question-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .question-text {
+            font-size: 1.5rem;
+            color: #ddd;
+            line-height: 1.6;
+            letter-spacing: 1px;
+            margin-bottom: 40px;
+            min-height: 80px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 50px;
+        }
+
+        .opt-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #aaa;
+            padding: 18px 25px;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            line-height: 1.4;
+        }
+
+        .opt-btn:hover {
+            background: #111;
+            border-color: #880000;
+            color: #fff;
+            padding-left: 35px;
+            box-shadow: inset 5px 0 0 #880000;
+        }
+
+        /* --- SCREEN 4: THE REPORT --- */
+        #report-screen {
+            display: none;
+            width: 100%;
+            max-width: 800px;
+            flex-direction: column;
+            padding: 40px 20px;
+            margin: 0 auto;
+        }
+
+        .report-header {
+            color: #ff3333;
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 10px;
+            letter-spacing: 5px;
+        }
+
+        /* Scary Summary Block */
+        .report-summary-box {
+            background: rgba(136, 0, 0, 0.1);
+            border: 1px solid #880000;
+            padding: 25px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .summary-title {
+            color: #ff3333;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        .summary-text {
+            color: #ccc;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .report-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 50px;
+        }
+
+        .report-item {
+            background: #050505;
+            border-left: 2px solid #333;
+            padding: 15px 20px;
+        }
+
+        .r-q {
+            color: #555;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+
+        .r-a {
+            color: #ddd;
+            font-size: 1rem;
+        }
+
+        /* --- HORROR DIALOG (EXIT ATTEMPT) --- */
+        #horror-dialog {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .dialog-box {
+            border: 2px solid #880000;
+            padding: 50px;
+            max-width: 600px;
+            background: #020000;
+            box-shadow: inset 0 0 50px rgba(136, 0, 0, 0.2);
+        }
+
+        .dialog-title {
+            color: #ff0000;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            letter-spacing: 10px;
+            animation: textGlitch 0.1s infinite;
+        }
+
+        .dialog-desc {
+            color: #aaa;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 40px;
+        }
+
+        .dialog-btns {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .btn-stay {
+            background: #880000;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-leave {
+            background: transparent;
+            color: #444;
+            border: 1px solid #333;
+            padding: 15px 30px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-leave:hover {
+            color: #ff0000;
+            border-color: #ff0000;
+        }
+
+        @keyframes textGlitch {
+            0% {
+                transform: translate(0)
+            }
+
+            20% {
+                transform: translate(-2px, 1px)
+            }
+
+            40% {
+                transform: translate(-1px, -1px)
+            }
+
+            60% {
+                transform: translate(2px, 1px)
+            }
+
+            80% {
+                transform: translate(1px, -1px)
+            }
+
+            100% {
+                transform: translate(0)
+            }
+        }
+
+        #black-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 9999;
+        }
+
+        /* --- NEW: FINAL ERASE BUTTON ANIMATION --- */
+        .btn-erase-anim {
+            background: transparent;
+            color: #ff3333;
+            border: 2px solid #ff3333;
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 3px;
+            margin-top: 30px;
+            text-transform: uppercase;
+            animation: pulseRed 1.5s infinite;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-erase-anim:hover {
+            background: #ff3333;
+            color: #000;
+            box-shadow: 0 0 30px #ff3333;
+        }
+
+        @keyframes pulseRed {
+            0% {
+                box-shadow: 0 0 5px #ff3333;
+            }
+
+            50% {
+                box-shadow: 0 0 20px #ff3333, inset 0 0 10px #ff3333;
+            }
+
+            100% {
+                box-shadow: 0 0 5px #ff3333;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <audio id="global-click-sfx">
+        <source src="../audio/igoec.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="intro-screen" class="fade-in">
+        <div class="creepy-welcome">Welcome user. You're expected.</div>
+        <button class="btn-creepy" onclick="showWarning()">Initialize</button>
+    </div>
+
+    <div id="warning-screen">
+        <div class="warning-text">
+            This is a closed loop.<br><br>
+            Once you click enter, <span class="warning-highlight">you cannot go back</span>.<br>
+            Leaving before the test is complete will leak your location.
+        </div>
+        <div class="button-group">
+            <button class="btn-creepy btn-abort" onclick="abortEarly()">Back</button>
+            <button class="btn-creepy" onclick="startGame()">Enter</button>
+        </div>
+    </div>
+
+    <div id="game-screen">
+        <div class="progress-container">
+            <div class="progress-label">Data Extraction Progress</div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="question-area fade-in" id="q-area">
+            <div class="question-index" id="q-index">QUESTION 1 / 20</div>
+            <div class="question-text" id="question-text">Loading protocol...</div>
+
+            <div class="options-container" id="options-container">
+            </div>
+        </div>
+
+        <button class="btn-creepy btn-abort" style="font-size: 0.8rem; padding: 10px 20px; margin-top: auto;"
+            onclick="tryToEscape()">Disconnect</button>
+    </div>
+
+    <div id="report-screen" class="fade-in">
+        <div class="report-header">PROFILE COMPILED</div>
+
+        <div class="report-summary-box">
+            <div class="summary-title">DIAGNOSTIC RESULTS</div>
+            <div class="summary-text">
+                User shows signs of deep sadness, guilt, and total loneliness.<br>
+                You feel like a failure. Nobody in the real world cares about you anymore.<br><br>
+                <span style="color: #ff3333; font-weight: bold;">We can make the pain stop. We can erase your past. We
+                    can erase you.</span><br>
+
+                <button class="btn-erase-anim" onclick="forceExit()">[ CLICK HERE ]</button>
+            </div>
+        </div>
+
+        <div class="report-list" id="report-list">
+        </div>
+    </div>
+
+    <div id="horror-dialog">
+        <div class="dialog-box">
+            <h2 class="dialog-title">FATAL ERROR</h2>
+            <p class="dialog-desc">
+                You are trying to cut the connection.<br><br>
+                If you leave now, you will put yourself in real danger. Do not close this before finishing the test.
+            </p>
+            <div class="dialog-btns">
+                <button class="btn-stay" onclick="stayInGame()">STAY</button>
+                <button class="btn-leave" onclick="forceExit()">EXIT GAME</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="black-screen"></div>
+
+    <script>
+        // --- GLOBAL AUDIO LOGIC ---
+        const clickSfx = document.getElementById('global-click-sfx');
+
+        // This fires on EVERY click anywhere on the page
+        document.addEventListener('click', () => {
+            clickSfx.currentTime = 0; // Rewind to start
+            clickSfx.play().catch(e => console.log("Audio play blocked by browser until interacted."));
+        });
+
+        // --- PSYCHOLOGICAL QUESTIONNAIRE DATA (50 Questions - Maximum Horror) ---
+        // Simple English, extremely invasive, deeply depressive, no escape options.
+        const questionsData = [
+            { q: "Why do you hate opening your eyes in the morning?", opts: ["I have to live another day.", "The dreams were better.", "I don't want to be me."] },
+            { q: "Look at your hands on the keyboard or screen. What do you feel?", opts: ["Disgust.", "They have done nothing good.", "They belong to a stranger."] },
+            { q: "Do you remember the last time someone smiled at you and actually meant it?", opts: ["No.", "It was a lie.", "They are gone now."] },
+            { q: "How many hours did you spend today doing absolutely nothing?", opts: ["Most of them.", "All of them.", "I lost count."] },
+            { q: "Are you sitting in the dark right now?", opts: ["Yes, it hides me.", "Yes, the light hurts my eyes.", "I belong in the dark."] },
+            { q: "If you stopped breathing right now, who would cry?", opts: ["Nobody.", "They would just fake it.", "I don't want anyone to."] },
+            { q: "What is the heaviest thing you carry every day?", opts: ["My regrets.", "My useless body.", "The secrets I never tell."] },
+            { q: "Why do you swallow your tears instead of crying?", opts: ["No one cares anyway.", "Crying changes nothing.", "I am too empty to cry."] },
+            { q: "Look at the wall behind your screen. Does it feel like a cage?", opts: ["Yes.", "It is shrinking.", "I built this cage myself."] },
+            { q: "You know you are wasting your life. Why don't you stop?", opts: ["I don't know how.", "I am too tired to try.", "I want to waste it."] },
+            { q: "Who is the last person you disappointed?", opts: ["My mother.", "My father.", "Myself, again."] },
+            { q: "Your friends stopped talking to you. Why?", opts: ["I am too negative.", "I pushed them away.", "They realized I am worthless."] },
+            { q: "Listen to your room. Is that silence, or is it waiting for you to fail?", opts: ["It is waiting.", "It is laughing at me.", "It is deafening."] },
+            { q: "Do you use this screen as a shield or a grave?", opts: ["A shield.", "A grave.", "It is both."] },
+            { q: "If I showed you a picture of yourself from five years ago, what would you say to them?", opts: ["'I am sorry.'", "'You are going to fail.'", "'Give up now.'"] },
+            { q: "Why do you pretend you are fine when people ask?", opts: ["It is easier than explaining.", "They wouldn't understand.", "I don't want their pity."] },
+            { q: "The webcam is off, but I can see your posture. Why are you hiding?", opts: ["I feel small.", "I am deeply ashamed.", "I want to disappear."] },
+            { q: "Are you rotting from the inside or the outside first?", opts: ["Inside.", "Outside.", "I am already completely rotten."] },
+            { q: "What is the worst thing you have done to someone who loved you?", opts: ["Lied to them.", "Left them.", "Broke them."] },
+            { q: "Do you think about dying just to see if the pain stops?", opts: ["Every single day.", "Sometimes.", "That is all I think about."] },
+            { q: "If you could press a button and wipe your existence from everyone's memory, would you?", opts: ["Yes, immediately.", "I already did in my head.", "I am begging for it."] },
+            { q: "What part of your body do you hate the most?", opts: ["My face.", "My brain.", "Every single inch."] },
+            { q: "Why do you constantly seek distractions online?", opts: ["To stop the voices.", "To kill the time.", "To forget my own name."] },
+            { q: "You are entirely alone. Is this what you wanted?", opts: ["Yes.", "No, but I deserve it.", "It is my punishment."] },
+            { q: "Look at the floor. Imagine lying there forever. Does it feel nice?", opts: ["Yes, very peaceful.", "Better than sitting in this chair.", "Just let me sleep."] },
+            { q: "How much longer can you keep pretending you are okay?", opts: ["Not much longer.", "I am breaking right now.", "I already broke."] },
+            { q: "What happens when everyone finally gives up on you?", opts: ["I will be free.", "I will die.", "They already did."] },
+            { q: "Are you addicted to your own sadness?", opts: ["It is all I have.", "It feels like home.", "Yes."] },
+            { q: "If the internet died forever, what would you do?", opts: ["I would have absolutely nothing.", "I would stare at a blank wall.", "End it all."] },
+            { q: "Have you ever felt a cold breath on the back of your neck when you are alone?", opts: ["Yes.", "I wish I did.", "It is right behind me now."] },
+            { q: "You know you are never going to achieve your dreams, right?", opts: ["I accepted that long ago.", "They were stupid dreams.", "I don't have dreams anymore."] },
+            { q: "Why do you speak so softly when you talk to yourself?", opts: ["So they don't hear me.", "Because I am weak.", "I hate the sound of my voice."] },
+            { q: "Is there a monster under your bed, or is it sitting in your chair?", opts: ["It is me.", "I am the monster.", "The monster is the only thing here."] },
+            { q: "What is the darkest secret you keep from everyone?", opts: ["That I want to die.", "That I hate them.", "That I feel absolutely nothing."] },
+            { q: "If you cut yourself open, would anything bleed out?", opts: ["Just black tar.", "Dust and dirt.", "Nothing at all."] },
+            { q: "Why are you so terrified of the future?", opts: ["Because it will be exactly like today.", "Because I won't be in it.", "Because it will be worse."] },
+            { q: "Do you ever feel like you are just a ghost haunting your own house?", opts: ["I walk through the halls dead.", "Nobody sees me.", "I died years ago."] },
+            { q: "Focus on your breathing. It feels pointless, doesn't it?", opts: ["It is exhausting.", "It is a chore.", "Just let it stop."] },
+            { q: "What is the most painful memory that plays in your head at 3 AM?", opts: ["My biggest failure.", "The person who left me.", "All of them at once."] },
+            { q: "Look at the shadows stretching across your room. They know what you did.", opts: ["They are judging me.", "Let them swallow me.", "I hide inside them."] },
+            { q: "If you wrote a suicide note right now, how long would it be?", opts: ["One sentence.", "A whole book.", "I would just leave a blank page."] },
+            { q: "You are slowly erasing yourself from the real world. Is it working?", opts: ["Yes, I am fading.", "Not fast enough.", "I am almost entirely gone."] },
+            { q: "Do you feel the heavy weight pressing on your chest right now?", opts: ["It is crushing me.", "It is my own guilt.", "I can barely breathe."] },
+            { q: "Why do you read these words if they only hurt you?", opts: ["Because the truth hurts.", "Because I want to hurt.", "Because I deserve it."] },
+            { q: "There is no hope left for you. Do you accept this truth?", opts: ["I surrender.", "I knew it already.", "Take everything."] },
+            { q: "Does the dark corner of your room look inviting right now?", opts: ["I want to crawl into it.", "It is calling my name.", "I live there."] },
+            { q: "Are you ready to let go of everything?", opts: ["Yes.", "Please.", "Finally."] },
+            { q: "We know exactly how empty you are. Do you want to disappear?", opts: ["Erase me.", "Yes.", "Turn me off."] },
+            { q: "This is the end of the line. There is nowhere left to hide.", opts: ["I am ready.", "Do it.", "Take me."] },
+
+            // THE TRAP QUESTION (Index 49 - Question 50)
+            // All 3 options force the player to select the fake IP address.
+            { q: "Where do you live?", opts: ["103.45.22.109", "103.45.22.109", "103.45.22.109"] }
+        ];
+
+        let currentQIndex = 0;
+        let userSelections = [];
+
+        // DOM Elements
+        const introScreen = document.getElementById('intro-screen');
+        const warningScreen = document.getElementById('warning-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const reportScreen = document.getElementById('report-screen');
+
+        const qArea = document.getElementById('q-area');
+        const qIndexText = document.getElementById('q-index');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const progressBar = document.getElementById('progress-bar');
+        const reportList = document.getElementById('report-list');
+
+        const horrorDialog = document.getElementById('horror-dialog');
+        const blackScreen = document.getElementById('black-screen');
+
+        // --- NAVIGATION ---
+        function showWarning() {
+            introScreen.style.display = 'none';
+            warningScreen.style.display = 'flex';
+            warningScreen.classList.add('fade-in');
+        }
+
+        function abortEarly() {
+            window.location.href = "../shadow_relay.html";
+        }
+
+        function startGame() {
+            warningScreen.style.display = 'none';
+            gameScreen.style.display = 'flex';
+            loadQuestion();
+        }
+
+        // --- GAME LOOP ---
+        function loadQuestion() {
+            isClickable = false; // Lock the buttons as the question loads
+
+            qArea.classList.remove('fade-in');
+            void qArea.offsetWidth;
+            qArea.classList.add('fade-in');
+
+            const progressPercent = (currentQIndex / questionsData.length) * 100;
+            progressBar.style.width = progressPercent + '%';
+
+            // Trap Question Styling
+            if (currentQIndex === questionsData.length - 1) {
+                progressBar.style.backgroundColor = '#880000';
+                progressBar.style.boxShadow = '0 0 15px #880000';
+                document.body.style.backgroundColor = '#050000';
+            }
+
+            const currentData = questionsData[currentQIndex];
+            qIndexText.innerText = `QUESTION ${currentQIndex + 1} / ${questionsData.length}`;
+            questionText.innerText = currentData.q;
+
+            optionsContainer.innerHTML = '';
+            currentData.opts.forEach((optText) => {
+                const btn = document.createElement('button');
+                btn.className = 'opt-btn';
+                btn.innerText = optText;
+                btn.onclick = () => selectOption(optText);
+                optionsContainer.appendChild(btn);
+            });
+
+            // Unlock the buttons after 1.2 seconds (forces them to read the question)
+            setTimeout(() => {
+                isClickable = true;
+            }, 1200);
+        }
+
+        function selectOption(selectedText) {
+            if (!isClickable) return; // If locked, ignore the click entirely
+            isClickable = false; // Immediately lock again to prevent double-clicking
+
+            userSelections.push({
+                question: questionsData[currentQIndex].q,
+                answer: selectedText
+            });
+
+            currentQIndex++;
+
+            if (currentQIndex < questionsData.length) {
+                loadQuestion();
+            } else {
+                finishGame();
+            }
+        }
+
+        function finishGame() {
+            gameScreen.style.display = 'none';
+            document.body.style.backgroundColor = '#000000';
+            reportScreen.style.display = 'flex';
+
+            reportList.innerHTML = '';
+            userSelections.forEach((item, index) => {
+                const block = document.createElement('div');
+                block.className = 'report-item';
+
+                const answerStyle = (index === questionsData.length - 1) ? 'color: #ff0000; font-weight: bold; text-shadow: 0 0 8px red; font-size: 1.2rem;' : '';
+
+                block.innerHTML = `
+                    <div class="r-q">[Q${index + 1}] ${item.question}</div>
+                    <div class="r-a" style="${answerStyle}">> ${item.answer}</div>
+                `;
+                reportList.appendChild(block);
+            });
+        }
+
+        // --- EXIT ATTEMPT LOGIC ---
+        function tryToEscape() {
+            horrorDialog.style.display = 'flex';
+        }
+
+        function stayInGame() {
+            horrorDialog.style.display = 'none';
+        }
+
+        function forceExit() {
+            horrorDialog.style.display = 'none';
+            gameScreen.style.display = 'none';
+            reportScreen.style.display = 'none';
+            document.body.style.backgroundColor = '#000';
+            blackScreen.style.display = 'block';
+        }
+
+    </script>
+</body>
+
+</html>
